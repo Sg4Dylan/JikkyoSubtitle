@@ -1,6 +1,15 @@
 # JikkyoSubtitle
 JikkyoSubtitle: Real-time transcription and translation of system audio into Chinese.
 
+![demo](./images/screenshot.jpg)
+
+## Features
+
+*   **Hide Border**
+*   **Always on Top**
+*   **Translation/Original Only**
+*   **Scrolling/Fixed Subtitles**
+
 ## Usage
 
 1. **Download:** Obtain the pre-built binary from the latest release in the [Releases](https://github.com/Sg4Dylan/JikkyoSubtitle/releases) section.
