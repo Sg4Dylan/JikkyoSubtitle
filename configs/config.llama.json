@@ -1,0 +1,34 @@
+{
+  "vad": {
+    "silero_vad": {
+      "model": "./models/vad/silero_vad.onnx",
+      "min_silence_duration": 0.02,
+      "min_speech_duration": 0.8,
+      "max_speech_duration": 2.0,
+      "threshold": 0.3
+    },
+    "interrupt_threshold": 0.998,
+    "num_threads": 2
+  },
+  "asr": {
+    "sense_voice": {
+      "model_path": "./models/sense-voice-zh-en-ja-ko-yue-2024-07-17/model.int8.onnx",
+      "language": "auto",
+      "num_threads": 1
+    },
+    "num_threads": 2,
+    "provider": "cpu",
+    "token_path": "./models/sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt"
+  },
+  "llm": {
+    "prompt_template": "<|start_header_id|>user<|end_header_id|>\n\nTreat next line as plain text input and translate it into Chinese, output translation ONLY. If translation is unnecessary (e.g. proper nouns, codes, etc.), return the original text. NO explanations. NO notes. Input:%TEXT%<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n",
+    "model_name": "llama-3.3-70b-inst",
+    "auth_key": "sk-aXTdpyG7c6G51cjj241b17Ea38F146A88a92513c89C22e77",
+    "api_base": "https://OPENAI-LIKE-API-BASE/",
+    "max_tokens": 512,
+    "temperature": 0.1,
+    "top_p": 0.3,
+    "is_llama_cpp": false,
+    "is_sakura_llm": false
+  }
+}

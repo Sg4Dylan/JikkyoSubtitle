@@ -1,0 +1,31 @@
+#include "winver.h"
+
+IDI_ICON1 ICON DISCARDABLE "assets/icon.ico"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGS      0x0L
+ FILEFLAGSMASK  0x3fL
+ FILEOS         VOS_NT_WINDOWS32
+ FILETYPE       VFT_APP
+ FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "CompanyName", "SgDylan"
+            VALUE "FileDescription", "A Realtime ASR & Translation Tool"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "LegalCopyright", "Copyright (C) 2023-2024 SgDylan"
+            VALUE "InternalName", "realtime-bilingual-asr"
+            VALUE "ProductName", "实时双语字幕"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END
