@@ -30,6 +30,7 @@
       "num_threads": 1
     },
     "num_threads": 2,
+    // 默认使用 CPU，也可以配置为 directml 来激活 GPU 加速
     "provider": "cpu",
     "token_path": "./models/sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt"
   },
