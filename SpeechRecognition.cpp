@@ -33,13 +33,6 @@ void SpeechRecognition::init() {
     configFile >> config;
 
     // 初始化加载 ASR 模型
-    auto asr_model_path = config["asr"]["sense_voice"]["model_path"].get<std::string>();
-    auto asr_model_lang = config["asr"]["sense_voice"]["language"].get<std::string>();
-    SherpaOnnxOfflineSenseVoiceModelConfig sense_voice_config{
-        asr_model_path.c_str(),
-        asr_model_lang.c_str(),
-        config["asr"]["sense_voice"]["num_threads"].get<int>()
-    };
     // Offline model config
     SherpaOnnxOfflineModelConfig offline_model_config;
     memset(&offline_model_config, 0, sizeof(offline_model_config));
@@ -47,9 +40,28 @@ void SpeechRecognition::init() {
     offline_model_config.num_threads = config["asr"]["num_threads"].get<int>();;
     auto asr_model_provider = config["asr"]["provider"].get<std::string>();
     offline_model_config.provider = asr_model_provider.c_str();
-    auto asr_model_token_path = config["asr"]["token_path"].get<std::string>();
-    offline_model_config.tokens = asr_model_token_path.c_str();
-    offline_model_config.sense_voice = sense_voice_config;
+    if (config["asr"].contains("sense_voice")) {
+        auto asr_model_path = config["asr"]["sense_voice"]["model_path"].get<std::string>();
+        auto asr_model_lang = config["asr"]["sense_voice"]["language"].get<std::string>();
+        auto asr_model_token_path = config["asr"]["sense_voice"]["token_path"].get<std::string>();
+        offline_model_config.tokens = asr_model_token_path.c_str();
+        SherpaOnnxOfflineSenseVoiceModelConfig sense_voice_config{
+            asr_model_path.c_str(),
+            asr_model_lang.c_str(),
+            config["asr"]["num_threads"].get<int>()
+        };
+        offline_model_config.sense_voice = sense_voice_config;
+    } else if (config["asr"].contains("dolphin")) {
+        auto asr_model_path = config["asr"]["dolphin"]["model_path"].get<std::string>();
+        auto asr_model_token_path = config["asr"]["dolphin"]["token_path"].get<std::string>();
+        offline_model_config.tokens = asr_model_token_path.c_str();
+        SherpaOnnxOfflineDolphinModelConfig dolphin_config{
+            asr_model_path.c_str(),
+        };
+        offline_model_config.dolphin = dolphin_config;
+    } else {
+        throw std::runtime_error("Failed to init config, unsupported ASR model type.");
+    }
 
     // Recognizer config
     SherpaOnnxOfflineRecognizerConfig recognizer_config;
@@ -58,7 +70,6 @@ void SpeechRecognition::init() {
     recognizer_config.model_config = offline_model_config;
 
     recognizer = SherpaOnnxCreateOfflineRecognizer(&recognizer_config);
-
     if (recognizer == nullptr) {
         throw std::runtime_error("Please check your recognizer config!\n");
     }
@@ -66,22 +77,31 @@ void SpeechRecognition::init() {
     // VAD Config
     SherpaOnnxVadModelConfig vadConfig;
     memset(&vadConfig, 0, sizeof(vadConfig));
-    auto vad_model_path = config["vad"]["silero_vad"]["model"].get<std::string>();
-    vadConfig.silero_vad.model = vad_model_path.c_str();
-    vadConfig.interrupt_threshold = config["vad"]["interrupt_threshold"].get<float>();;
-    vadConfig.silero_vad.threshold = config["vad"]["silero_vad"]["threshold"].get<float>();;
-    vadConfig.silero_vad.min_silence_duration = config["vad"]["silero_vad"]["min_silence_duration"].get<float>();
-    vadConfig.silero_vad.min_speech_duration = config["vad"]["silero_vad"]["min_speech_duration"].get<float>();;
-    vadConfig.silero_vad.max_speech_duration = config["vad"]["silero_vad"]["max_speech_duration"].get<float>();;
-    vadConfig.silero_vad.window_size = 512;
     vadConfig.sample_rate = modelSampleRate;
-    vadConfig.num_threads =
-    vadConfig.num_threads = config["vad"]["num_threads"].get<int>();;
+    vadConfig.num_threads = vadConfig.num_threads = config["vad"]["num_threads"].get<int>();;
     vadConfig.debug = 0;
     vadConfig.provider = "cpu";
+    if (config["vad"].contains("silero_vad")) {
+        auto vad_model_path = config["vad"]["silero_vad"]["model"].get<std::string>();
+        vadConfig.silero_vad.model = vad_model_path.c_str();
+        vadConfig.silero_vad.threshold = config["vad"]["silero_vad"]["threshold"].get<float>();;
+        vadConfig.silero_vad.min_silence_duration = config["vad"]["silero_vad"]["min_silence_duration"].get<float>();
+        vadConfig.silero_vad.min_speech_duration = config["vad"]["silero_vad"]["min_speech_duration"].get<float>();;
+        vadConfig.silero_vad.max_speech_duration = config["vad"]["silero_vad"]["max_speech_duration"].get<float>();;
+        vadConfig.silero_vad.window_size = 512;
+    } else if (config["vad"].contains("ten_vad")) {
+        auto vad_model_path = config["vad"]["ten_vad"]["model"].get<std::string>();
+        vadConfig.ten_vad.model = vad_model_path.c_str();
+        vadConfig.ten_vad.threshold = config["vad"]["ten_vad"]["threshold"].get<float>();;
+        vadConfig.ten_vad.min_silence_duration = config["vad"]["ten_vad"]["min_silence_duration"].get<float>();
+        vadConfig.ten_vad.min_speech_duration = config["vad"]["ten_vad"]["min_speech_duration"].get<float>();;
+        vadConfig.ten_vad.max_speech_duration = config["vad"]["ten_vad"]["max_speech_duration"].get<float>();;
+        vadConfig.ten_vad.window_size = 256;
+    } else {
+        throw std::runtime_error("Failed to init config, unsupported VAD model type.");
+    }
 
     vad = SherpaOnnxCreateVoiceActivityDetector(&vadConfig, 30);
-
     if (vad == nullptr) {
         SherpaOnnxDestroyOfflineRecognizer(recognizer);
         throw std::runtime_error("Please check your vad config!\n");
@@ -89,15 +109,15 @@ void SpeechRecognition::init() {
     std::cout << "VAD & ASR model loaded" << std::endl;
 
     // LLM Params
-    promptTemplate = config["llm"]["prompt_template"].get<std::string>();
-    modelName = config["llm"]["model_name"].get<std::string>();
-    modelAuth = config["llm"]["auth_key"].get<std::string>();
-    llmServer = config["llm"]["api_base"].get<std::string>();
-    isLlamaCpp = config["llm"]["is_llama_cpp"].get<bool>();
-    isSakuraLLM = config["llm"]["is_sakura_llm"].get<bool>();
-    modelMaxTokens = config["llm"]["max_tokens"].get<int>();
-    modelTemperature = config["llm"]["temperature"].get<float>();
-    modelTopP = config["llm"]["top_p"].get<float>();
+    remoteLLMConfig.apiBaseUrl = config["llm"]["api_base"].get<std::string>();
+    remoteLLMConfig.apiToken = config["llm"]["api_token"].get<std::string>();
+    remoteLLMConfig.modelName = config["llm"]["model_name"].get<std::string>();
+    remoteLLMConfig.isSakuraLLM = config["llm"].value("is_sakura_llm", false);
+    remoteLLMConfig.promptTemplate = config["llm"]["prompt_template"].get<std::string>();
+    remoteLLMConfig.engineType = config["llm"].value("is_llama_cpp", false) ? LLaMA_CPP : StandardOpenAI;
+    remoteLLMConfig.samplingConfig.maxTokens = config["llm"].value("max_tokens", 512);
+    remoteLLMConfig.samplingConfig.temperature = config["llm"].value("temperature", 0.1);
+    remoteLLMConfig.samplingConfig.topP = config["llm"].value("topP", 0.3);
 
     // Init ASR Handler
     asrCallback = [this](short *input, int32_t n_samples,
@@ -124,9 +144,9 @@ void SpeechRecognition::init() {
 
             const SherpaOnnxOfflineStream *stream = SherpaOnnxCreateOfflineStream(recognizer);
 
-            SherpaOnnxAcceptWaveformOffline(stream, modelSampleRate, tail_paddings, 4800);
+            SherpaOnnxAcceptWaveformOffline(stream, modelSampleRate, tailPaddings, 4800);
             SherpaOnnxAcceptWaveformOffline(stream, modelSampleRate, segment->samples, segment->n);
-            SherpaOnnxAcceptWaveformOffline(stream, modelSampleRate, tail_paddings, 4800);
+            SherpaOnnxAcceptWaveformOffline(stream, modelSampleRate, tailPaddings, 4800);
 
             SherpaOnnxDecodeOfflineStream(recognizer, stream);
 
@@ -145,7 +165,6 @@ void SpeechRecognition::init() {
                 std::lock_guard lock(subtitlesMutex);
                 subtitles.emplace(text, result->lang);
             }
-
 
             SherpaOnnxDestroyOfflineRecognizerResult(result);
             SherpaOnnxDestroyOfflineStream(stream);
@@ -169,27 +188,27 @@ std::string SpeechRecognition::getTranslate(const std::string &text) {
         nonSpaceText.erase(std::ranges::remove_if(nonSpaceText,
                                                   [](unsigned char c) { return std::isspace(c); }).begin(),
                            nonSpaceText.end());
-        ss << llmServer << "/v1/completions";
+        ss << remoteLLMConfig.apiBaseUrl << "/v1/completions";
         const std::string url = ss.str();
         ix::HttpRequestArgsPtr args = httpClient.createRequest();
         ix::WebSocketHttpHeaders headers;
-        headers["Authorization"] = "Bearer " + modelAuth;
+        headers["Authorization"] = "Bearer " + remoteLLMConfig.apiToken;
         headers["content-type"] = "application/json";
         args->extraHeaders = headers;
         json payload = {
-            {"model", modelName},
-            {"max_tokens", modelMaxTokens},
-            {"temperature", modelTemperature},
-            {"top_p", modelTopP}
+            {"model", remoteLLMConfig.modelName},
+            {"max_tokens", remoteLLMConfig.samplingConfig.maxTokens},
+            {"temperature", remoteLLMConfig.samplingConfig.temperature},
+            {"top_p", remoteLLMConfig.samplingConfig.topP}
         };
 
         // Use promptTemplate and format it
-        std::string prompt = promptTemplate;
+        std::string prompt = remoteLLMConfig.promptTemplate;
         size_t pos = prompt.find("%TEXT%");
         if (pos != std::string::npos) {
             prompt.replace(pos, 6, nonSpaceText);
         }
-        if (isSakuraLLM) {
+        if (remoteLLMConfig.isSakuraLLM) {
             payload["stop"] = {"<|im_end|>", "<|im_start|>"};
         }
         payload["prompt"] = prompt;
@@ -197,7 +216,7 @@ std::string SpeechRecognition::getTranslate(const std::string &text) {
         ix::HttpResponsePtr out = httpClient.post(url, payload.dump(), args);
         if (out->errorCode == ix::HttpErrorCode::Ok) {
             json llm_result = json::parse(out->body);
-            if (isLlamaCpp) {
+            if (remoteLLMConfig.engineType == LLaMA_CPP) {
                 return llm_result["content"];
             }
             return llm_result["choices"][0]["text"];

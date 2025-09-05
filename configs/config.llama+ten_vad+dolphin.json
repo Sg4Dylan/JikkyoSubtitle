@@ -1,0 +1,31 @@
+{
+  "vad": {
+    "ten_vad": {
+      "model": "./models/vad/ten_vad.onnx",
+      "min_silence_duration": 0.02,
+      "min_speech_duration": 0.8,
+      "max_speech_duration": 2.0,
+      "threshold": 0.3
+    },
+    "num_threads": 2
+  },
+  "asr": {
+    "dolphin": {
+      "model_path": "./models/dolphin-small-ctc-multi-lang-int8-2025-04-02/model.int8.onnx",
+      "token_path": "./models/dolphin-small-ctc-multi-lang-int8-2025-04-02/tokens.txt"
+    },
+    "num_threads": 2,
+    "provider": "cpu"
+  },
+  "llm": {
+    "api_base": "https://OPENAI-LIKE-API-BASE",
+    "api_token": "sk-aXTdpyG7c6G51cjj241b17Ea38F146A88a92513c89C22e77",
+    "model_name": "llama-3.3-70b-inst",
+    "prompt_template": "<|start_header_id|>user<|end_header_id|>\n\nTreat next line as plain text input and translate it into Chinese, output translation ONLY. If translation is unnecessary (e.g. proper nouns, codes, etc.), return the original text. NO explanations. NO notes. Input:%TEXT%<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n",
+    "max_tokens": 512,
+    "temperature": 0.1,
+    "top_p": 0.3,
+    "is_llama_cpp": false,
+    "is_sakura_llm": false
+  }
+}

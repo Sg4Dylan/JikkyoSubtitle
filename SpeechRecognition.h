@@ -13,7 +13,28 @@
 #include <thread>
 
 #include "AudioCapture.h"
-#include "c-api.h"
+#include "sherpa-onnx/c-api/c-api.h"
+
+enum LLMEngineType {
+    StandardOpenAI = 0,
+    LLaMA_CPP = 1
+};
+
+struct SamplingConfig {
+    int maxTokens;
+    float temperature;
+    float topP;
+};
+
+struct RemoteLLMConfig {
+    std::string apiToken;
+    std::string apiBaseUrl;
+    std::string modelName;
+    bool isSakuraLLM;
+    std::string promptTemplate;
+    LLMEngineType engineType = StandardOpenAI;
+    SamplingConfig samplingConfig;
+};
 
 class SpeechSubtitle {
 public:
@@ -62,40 +83,34 @@ public:
 private:
     void capture();
 
-    // Loads configuration from the JSON file
     void loadConfig();
 
     static bool initNetSystem();
 
-    ix::HttpClient httpClient;
+    // Global config / status
+    std::string configFilePath;
+    bool running = false;
+    std::mutex subtitlesMutex;
+
+    // Audio capture pipeline
     AudioCapture audioCapture;
+    std::thread captureThread;
 
-    std::string configFilePath; // Path to the configuration file
-
-    // Configuration members loaded from the JSON file
-    SherpaOnnxVadModelConfig vadConfig;
-    std::string promptTemplate;
-    std::string modelName;
-    std::string modelAuth;
-    int modelMaxTokens = 512;
-    float modelTemperature = 0.1;
-    float modelTopP = 0.3;
-    std::string llmServer;
-    bool isLlamaCpp = false;
-    bool isSakuraLLM = false;
-
+    // ASR pipeline
     int modelSampleRate = 16000;
-    float tail_paddings[4800] = {0.}; // 0.3 seconds at 16 kHz sample rate
-    const SherpaOnnxOfflineRecognizer *recognizer = nullptr;
+    float tailPaddings[4800] = {0.}; // 0.3 seconds at 16 kHz sample rate
     SherpaOnnxOfflineRecognizerConfig recognizer_config;
-    SherpaOnnxOfflineModelConfig offline_model_config;
-    SherpaOnnxVoiceActivityDetector *vad = nullptr;
+    const SherpaOnnxOfflineRecognizer *recognizer = nullptr;
+    SherpaOnnxVadModelConfig vadConfig;
+    const SherpaOnnxVoiceActivityDetector *vad = nullptr;
     std::function<void(short *, int32_t, int32_t)> asrCallback;
 
-    bool running = false;
+    // LLM based translate pipeline
+    ix::HttpClient httpClient;
+    RemoteLLMConfig remoteLLMConfig;
+
+    // Render queue
     std::queue<SpeechSubtitle> subtitles;
-    std::mutex subtitlesMutex;
-    std::thread captureThread;
 };
 
 #endif

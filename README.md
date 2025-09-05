@@ -26,6 +26,7 @@ JikkyoSubtitle: Real-time transcription and translation of system audio into Chi
 
 **Prerequisites:**
 
+0. **sherpa-onnx:** Obtain the pre-built shared libraries in the [Releases](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.12.11) page.
 1. **Visual Studio with the "Desktop development with C++" workload:**  Ensure it includes the MSVC compiler and CMake.
 2. **vcpkg:** Installed and integrated with your system (you've likely already done this if you have a vcpkg.json). Make sure `VCPKG_ROOT` environment variable is set and `vcpkg integrate install` has been run.
 3. **Git:** For fetching the project (if applicable).
